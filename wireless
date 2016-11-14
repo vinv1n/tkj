@@ -1,0 +1,147 @@
+#include <stdio.h>
+#include <string.h>
+#include <wireless/comm_lib.h>
+#include <stdint.h>
+#include <time.h>
+
+
+Void commFxn(UArg arg0, UArg arg1){
+    char payload[80];
+    char data[80];
+    uint16_t senderAddr;
+    char nimi[16];
+    int i, n;
+    time_t, start_t, end_t;
+    double diff_t;
+    
+    int32_t result = StartReceive6LoWPAN();
+    if (result != True){
+        System_abort("Wireless receive start failed");
+    }
+    switch (valinta){
+        case 'uusi':
+            if nimi{
+                System_printf("Laittessa on jo Aasigotchi!\n");
+                System_flush();
+            }
+            else if (nimi == NULL){
+                System_printf("Luodaan uusi aasigotchi vai ladataanko serveriltä\n");
+                System_flush();
+                /*valinta jommallakummalla näppäimellä*/
+                if (hButton == true){
+                    /*haetaan vanha gothi*/
+                    if (GetTxFlag() == false){
+                        Send6LoWPAN(serverADDR, nimi:\n, 25);
+                        StartReceive6LoWPAN();
+                    }
+                    else if (GetRxFlag() == true){
+                        if (Receive6LoWPAN(&senderAddr, payload, 80) != -1) {
+                            data = payload;
+                        }
+                        else{
+                            data = payload;
+                            System_abort("Tiedoston latauksessa tapahtui virhe %s\n", data);
+                        }
+                    }
+                
+                }
+                else {
+                    /*luodaan uusi gotchi pitää parantaa jossain vaihessa*/
+                    char gothi[80];
+                    gothi = [natsigotchi,kuva\n];
+                    if (GetTxFlag() == false){
+                        Send6LoWPAN(serverADDR, gothi, 80);
+                        StartReceive6LoWPAN();
+                    }
+                    else if (GetRxFlag() == true){
+                        if (Receive6LoWPAN(&senderAddr, payload, 80) != -1) {
+                            System_printf("Aasigotchin lataus serverille onnistui");
+                            System_flush();
+                        }
+                    }
+                    
+                }
+            }
+            
+            /*luodaan uusi gothi ja lähetetään serverille*/
+        case 'leiki':
+            /*haetaan laheltä leikki kaveria*/
+            if (nimi == NULL){
+                if (GetTxFlag() == false){
+                    Send6LoWPAN(serverADDR, nimi, 16);
+                    StartReceive6LoWPAN();
+                }
+                else if (GetRxFlag() == true){
+                    if (Receive6LoWPAN(&serverADDR, payload, 80) != -1){
+                        data = payload; 
+                    }
+                    else{
+                        System_abort("Tiedonsiirrossa tapahtui virhe");
+                    }
+                }
+            }
+            else{
+                System_printf("Laitteessa on jo Gotchi ladattuna");
+                System_flush();
+            }
+        case 'terve':
+            /*hakee kaveria läheltä*/
+            while(1){
+                if (GetTxFlag() == false){
+                    Send6LoWPAN(0xFFFF, nimi,16);
+                    StartReceive6LoWPAN();
+                    if (GetRxFlag() == true){
+                        if(Receive6LoWPAN(&senderAddr, payload, 80 != -1)){
+                            data = payload;
+                            if (hButton == true){    
+                                System_printf("Määritä leikkiaika virtapainikkeen klikkaus=5s leikkiä!");
+                                System_flush();
+                                n=1*10000/clockPeriod;
+                                while (hButton == true){
+                                    time(&start);
+                                    n++;
+                                    if (n>(60*10000/clockPeriod)){
+                                        break;
+                                    }
+                                    time(&end_t);
+                                    else if (diff_t = difftime(&end_t, start_t) >= 10){
+                                        System_printf("Liian pitkä väli painallusten välillä!");
+                                        System_flush();
+                                        break;
+                                    }
+                                    }
+                                }
+                            }
+                        }
+                            break;
+                    }
+                        else {
+                            System_printf("Tiedonsiirrossa tapahtui virhe");
+                            System_flush();
+                            break;
+                        }
+                    }
+        case 'nuku':
+            /*lähetetään gothi takaisin tarhaan*/
+            if (nimi == NULL){
+                System_abort("Laitteessa ei ole Gotchia!");
+            }
+            else {
+                if (GetTxFlag() == false){
+                    Send6LoWPAN(&serverADDR, data, 80);
+                    StartReceive6LoWPAN();
+                }
+                else if (GetRxFlag() == true){
+                    if (Receive6LoWPAN(&serverADDR, payload, 80) != -1){
+                        System_printf("Gotchi pääsi turvallisti aitaukseen nukkumaan");
+                        System_flush();
+                    }
+                    else{
+                        System_abort("Tiedonsiirrossa tapahtui virhe!");
+                    }
+                }
+            }
+        default:
+            System_abort("Virhe valintaa suorittaessa!");
+    }
+}
