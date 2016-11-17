@@ -1,0 +1,31 @@
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
+#include <string.h>
+#include <stdint.h>
+
+
+
+
+int valinta = 0;
+double start_t, end_t;
+double diff_t = 0;
+char taulukko[32] = ["Uusi", "Leiki", "Terve", "Nuku", "Sammuta Laite!"];
+int i = 0;
+int n;
+
+
+int main(){
+    start_t
+    Display_print0(8, 8, "KALU käynnissä");
+    System_flush();
+    while(1){
+        Display_print0(8,8, taulukko[i-1]\n, "*"taulukko[i]\n, taulukko[i+1]);
+        System_flush();
+        if (hButton == true){
+            i++;
+        }
+        else if (cButton == true){
+            Display_print0(8,8, "Suoritetaan operaatio: "taulukko[i]);
+        }
+    }
