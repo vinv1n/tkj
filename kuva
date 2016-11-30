@@ -1,0 +1,34 @@
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
+#include <string.h>
+#include <stdint.h>
+
+
+const uint8_t imgData[8] = {
+   0x8, 0x14, 0x14, 0x14, 0x14, 0x63, 0x81, 0xFF
+};
+
+// Mustavalkoinen kuva: värit musta ja valkoinen
+uint32_t imgPalette[] = {0, 0xFFFFFF};
+
+// Kuvan määrittelyt
+const tImage image = {
+    .BPP = IMAGE_FMT_1BPP_UNCOMP,
+    .NumColors = 2,
+    .XSize = 1,
+    .YSize = 8,
+    .pPalette = imgPalette,
+    .pPixel = imgData
+};
+
+...
+Void taskFxn(UArg arg0, UArg arg1) {
+   if (pContext) {
+
+      GrImageDraw(pContext, &image, 0, 0);
+      GrFlush(pContext);
+   }
+}
+
+ 
