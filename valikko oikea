@@ -1,0 +1,72 @@
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
+#include <string.h>
+#include <stdint.h>
+
+
+
+
+int valinta = 0;
+char taulukko[32] = ["Uusi", "Leiki", "Terve", "Nuku", "Sammuta Laite!"];
+int i = 0;
+int n;
+
+/*pitää confata cpowerbutton valitsemaan toiminta*/
+
+
+int main(){
+    start_t
+    Display_print0(1, 1, "KALU käynnissä");
+    System_flush();
+    while(1){
+        for (n=0; n<5; n++){
+            if (i == 0){
+                Display_print0(hDisplay,8,8, "Luodaan uusi gotchi");
+                if (cButton0 == true){
+                    /*uusi*/
+                else if (hButton0 == true){
+                    i++;
+                    }
+                }
+            }
+            else if (i == 1){
+                Display_print0(hDisplay, 8,8, taulokko[i]);
+                if (cButton0 == true){
+                    Display_print0(hDisplay,8,8, "Gothi ulkoilee kerrallaan 20s");
+                }
+                else if (hButton0 == true){
+                    i++;
+                }
+            }
+            else if (i == 2){
+                Display_print0(hDisplay,8,8, taulokko[i]);
+                if (hButton0 == true){
+                    i++;
+                }
+                else if (cButton0 == true){
+                    /*terve*/
+                }
+            }
+            else if (i == 3){
+                Display_print0(hDisplay,8,8, taulokko[i]);
+                if (hButton0 == true){
+                    i++;
+                }
+                else if (cButton0 == true){
+                    /*nuku*/
+                }
+            }
+            else if (i == 4){
+                Display_print0(hDisplay,8,8, taulokko[i]);
+                Display_print0(hDisplay,8,8, "HYVÄSTI");
+                Power_shutdown(NULL,0);
+            }
+            else if (hPowerButton == true){
+                Power_shutdown(NULL,0);
+            }
+        }
+    }
+}
+
+
