@@ -1,0 +1,39 @@
+#include <stdio.h>
+#include <time.h>
+#include <math.h>
+#include <string.h>
+#include <stdint.h>
+
+
+
+
+int valinta = 0;
+char taulukko[32] = ["Uusi", "Leiki", "Terve", "Nuku", "Sammuta Laite!"];
+char lista[];
+char lista[20] = ["Ulkoile", "Ota Aurinkoa"];
+int i = 0;
+int n;
+
+int main(){
+    Display_print0(8, 8, "Päällä");
+    while(1){
+        Display_print(7,8, taulukko[i-1]);
+		Display_print0(8,8, taulukko[i]);
+        Display_print(9,8, taulukko[i+1]);
+		if (hButton == true){
+            i++;
+        }
+        else if (cButton == true){
+            Display_print0(8,8, taulukko[i]);
+            if (i == 1){
+                Display_print0(8,8, "Mita halutaan tehda?");
+                for (n=0; n <= 1; n++){
+                    Display_print0(8,8, lista[n]);
+                    if (cButton == true){
+                        Display_print0(1,1, lista[n]);
+                    }
+                }
+            }
+        }
+    }
+}
