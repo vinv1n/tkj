@@ -1,0 +1,651 @@
+/*
+ *
+ *
+ *  Created on: 29.10.2016
+ *  Author: Teemu Leppanen / UBIComp / University of Oulu
+ *
+ */
+#include <stdio.h>
+#include <string.h>
+#include <wireless/comm_lib.h>
+#include <stdint.h>
+#include <time.h>
+#include <math.h>
+
+/* XDCtools files */
+#include <xdc/std.h>
+#include <xdc/runtime/System.h>
+
+/* BIOS Header files */
+#include <ti/sysbios/BIOS.h>
+#include <ti/sysbios/knl/Clock.h>
+#include <ti/sysbios/knl/Task.h>
+#include <ti/drivers/PIN.h>
+#include <ti/drivers/pin/PINCC26XX.h>
+#include <ti/drivers/I2C.h>
+#include <ti/drivers/i2c/I2CCC26XX.h>
+#include <ti/drivers/Power.h>
+#include <ti/drivers/power/PowerCC26XX.h>
+#include <ti/mw/display/Display.h>
+#include <ti/mw/display/DisplayExt.h>
+
+/* Board Header files */
+#include "Board.h"
+#include "wireless/comm_lib.h"
+#include "sensors/tmp007.h"
+#include "sensors/opt3001.h"
+#include "sensors/bmp280.h"
+#include "sensors/hdc1000.h"
+#include "sensors/mpu9250.h"
+
+// *******************************
+//
+// GLOBAL VARIABLES
+//
+// *******************************
+
+/* Task */
+#define STACKSIZE 2000
+
+Char taskStack[STACKSIZE];
+Char taskCommStack[STACKSIZE];
+Char taskValikkoStack[STACKSIZE];
+
+/* Display */
+Display_Handle hDisplay;
+
+/* Pin Button1 configured as power/scroll button */
+static PIN_Handle hPowerButton;
+static PIN_State sPowerButton;
+PIN_Config cPowerButton[] = {
+    Board_BUTTON1 | PIN_INPUT_EN | PIN_PULLUP | PIN_IRQ_NEGEDGE,
+    PIN_TERMINATE
+};
+PIN_Config cPowerWake[] = {
+    Board_BUTTON1 | PIN_INPUT_EN | PIN_PULLUP | PINCC26XX_WAKEUP_NEGEDGE,
+    PIN_TERMINATE
+};
+
+/* Pin Button0 configured as menu/selection button */
+static PIN_Handle hButton0;
+static PIN_State sButton0;
+PIN_Config cButton0[] = {
+    Board_BUTTON0 | PIN_INPUT_EN | PIN_PULLUP | PIN_IRQ_NEGEDGE,
+    PIN_TERMINATE
+};
+
+/* Leds */
+static PIN_Handle hLed;
+static PIN_State sLed;
+PIN_Config cLed[] = {
+    Board_LED0 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
+    Board_LED1 | PIN_GPIO_OUTPUT_EN | PIN_GPIO_LOW | PIN_PUSHPULL | PIN_DRVSTR_MAX,
+    PIN_TERMINATE
+};
+
+/* MPU global variables */
+static PIN_Handle hMpuPin;
+static PIN_State MpuPinState;
+static PIN_Config MpuPinConfig[] = {
+    Board_MPU_POWER  | PIN_GPIO_OUTPUT_EN | PIN_GPIO_HIGH | PIN_PUSHPULL | PIN_DRVSTR_MAX,
+    PIN_TERMINATE
+};
+
+// MPU9250 uses its own I2C interface
+static const I2CCC26XX_I2CPinCfg i2cMPUCfg = {
+    .pinSDA = Board_I2C0_SDA1,
+    .pinSCL = Board_I2C0_SCL1
+};
+
+/* Handle power button */
+Void powerButtonFxn(PIN_Handle handle, PIN_Id pinId) {
+
+    Display_clear(hDisplay);
+    Display_close(hDisplay);
+    Task_sleep(100000 / Clock_tickPeriod);
+
+	PIN_close(hPowerButton);
+
+    PINCC26XX_setWakeup(cPowerWake);
+	Power_shutdown(NULL,0);
+}
+
+    // 0-napin käsittelijäfunktio
+void buttonFxn(PIN_Handle handle, PIN_Id pinId) {
+    // Vaihdetaan led-pinnin tilaa negaatiolla
+   PIN_setOutputValue( hLed, Board_LED0, !PIN_getOutputValue( Board_LED0 ) );
+}
+
+Void valikkoFxn(UArg arg0, UArg arg1){
+    int i, n, valinta;
+    /*Valikko*/
+    Display_print0(hDisplay, 1,1, "KALU kaynnissa");
+    Task_sleep(2 * 1000000/Clock_tickPeriod);
+    Display_clear(hDisplay);
+    
+    while(1){
+        for (n=0; n<5; n++){
+            if (i == 0){
+                Display_print0(hDisplay,8,8, "Luodaan uusi gotchi");
+                if (hButton0 == true){
+                    valinta = 0;
+                }
+                else if (cButton0 == true){
+                    i++;
+                }
+            }
+            else if (i == 1){
+                Display_print0(hDisplay, 8,8, "Leiki");
+                if (hButton0 == true){
+                    Display_print0(hDisplay,8,8, "Gothi ulkoilee kerrallaan 20s");
+                    valinta = 1;
+                }
+                else if (cButton0 == true){
+                    i++;
+                }
+            }
+            else if (i == 2){
+                Display_print0(hDisplay,8,8, "Terve muille");
+                if (cButton0 == true){
+                    i++;
+                }
+                else if (hButton0 == true){
+                    Display_print0(hDisplay, 8,8, "Gotchi morottaa kavereita!");
+                    valinta = 2;
+                }
+            }
+            else if (i == 3){
+                Display_print0(hDisplay,8,8, "Gotchi nukkumaan");
+                if (cButton0 == true){
+                    i++;
+                }
+                else if (hButton0 == true){
+                    Display_print0(hDisplay,8,8, "Gotchi menee nukkumaan!");
+                    valinta = 3;
+                }
+            }
+            else if (i == 4){
+                Display_print0(hDisplay,8,8, "Sammuta laite");
+                Display_print0(hDisplay,8,8, "HYVASTI?");
+                if (hButton0 == true){
+                    Power_shutdown(NULL,0);
+                }
+            }
+            else if (hPowerButton == true){
+                Power_shutdown(NULL,0);
+            }
+        }
+    }
+}
+Void commFxn(UArg arg0, UArg arg1){
+    char payload[80];
+    char data[80];
+    uint16_t senderAddr = IEEE80154_SINK_ADDR;
+    char nimi[16];
+    int i, n, valinta;
+
+    int32_t result = StartReceive6LoWPAN();
+    if (result != true) {
+        System_abort("Wireless receive start failed");
+    }
+    switch (valinta) {
+        case '0':
+            if (nimi == true){
+                System_printf("Laittessa on jo Aasigotchi!\n");
+                System_flush();
+            }
+            else if (nimi == NULL){
+                System_printf("Luodaan uusi aasigotchi vai ladataanko serveriltä\n");
+                System_flush();
+                /*valinta jommallakummalla näppäimellä*/
+                if (hButton0 == true){
+                    /*haetaan vanha gothi*/
+                    if (GetTXFlag() == false){
+                        Send6LoWPAN(&senderAddr, "nimi:\n", 25);
+                        StartReceive6LoWPAN();
+                    }
+                    else if (GetRXFlag() == true){
+                        if (Receive6LoWPAN(&senderAddr, payload, 80) != -1) {
+                        //data=payload;
+                        }
+                        else{
+                            System_abort("Tiedoston latauksessa tapahtui virhe");
+                        }
+                    }
+                }
+                else {
+                    /*luodaan uusi gotchi pitää parantaa jossain vaihessa*/
+                    char gothi[80];
+                    //gothi = [natsigotchi,kuva];
+                    if (GetTXFlag() == false) {
+                        Send6LoWPAN(&senderAddr, gothi, 80);
+                        StartReceive6LoWPAN();
+                    }
+                    else if (GetRXFlag() == true){
+                        if (Receive6LoWPAN(&senderAddr, payload, 80) != -1) {
+                            System_printf("Aasigotchin lataus serverille onnistui");
+                            System_flush();
+                        }
+                    }
+                }
+            }
+            /*luodaan uusi gothi ja lähetetään serverille*/
+        case '1':
+            /*haetaan laheltä leikki kaveria*/
+            if (nimi == NULL){
+                if (GetTXFlag() == false){
+                    Send6LoWPAN(&senderAddr, nimi, 16);
+                    StartReceive6LoWPAN();
+                }
+                else if (GetRXFlag() == true){
+                    if (Receive6LoWPAN(&senderAddr, payload, 80) != -1){
+                        //data = payload; 
+                    }
+                    else{
+                        System_abort("Tiedonsiirrossa tapahtui virhe");
+                    }
+                }
+            }
+            else{
+                System_printf("Laitteessa on jo Gotchi ladattuna");
+                System_flush();
+            }
+        case '2':
+            /*hakee kaveria läheltä*/
+            while(1){
+                if (GetTXFlag() == false){
+                    Send6LoWPAN(0xFFFF, nimi,16);
+                    StartReceive6LoWPAN();
+                    if (GetRXFlag() == true){
+                        if(Receive6LoWPAN(&senderAddr, payload, 80 != -1)){
+                            //data = payload;
+                            if (hButton0 == true){
+                                System_printf("Määritä leikkiaika virtapainikkeen klikkaus=5s leikkiä!");
+                                System_flush();
+                                n=1*10000/Clock_tickPeriod;
+                                while (hButton0 == true){
+                                    n++;
+                                    if (n>(60*10000/Clock_tickPeriod)){
+                                        break;
+                                    }
+                                        System_printf("Liian pitkä väli painallusten välillä!");
+                                        System_flush();
+                                        break;
+                                }
+                            }
+                        }
+                            break;
+                    }
+                        else {
+                            System_printf("Tiedonsiirrossa tapahtui virhe");
+                            System_flush();
+                            break;
+                        }
+                    }
+                }
+        case '3':
+            /*lähetetään gothi takaisin tarhaan*/
+            if (nimi == NULL){
+                System_abort("Laitteessa ei ole Gotchia!");
+            }
+            else {
+                if (GetTXFlag() == false){
+                    Send6LoWPAN(&senderAddr, data, 80);
+                    StartReceive6LoWPAN();
+                }
+                else if (GetRXFlag() == true){
+                    if (Receive6LoWPAN(&senderAddr, payload, 80) != -1){
+                        System_printf("Gotchi pääsi turvallisti aitaukseen nukkumaan");
+                        System_flush();
+                    }
+                    else{
+                        System_abort("Tiedonsiirrossa tapahtui virhe!");
+                    }
+                }
+            }
+        default:
+            //System_abort("Virhe valintaa suorittaessa!");
+    }
+}
+// MAIN TASK
+Void taskFxn(UArg arg0, UArg arg1) {
+    int i = 0;
+    int n;
+    char tstr[5];
+    char bstr[5];
+    char pstr[5];
+    char hstr[5];
+    char mstr[5];
+
+    // *******************************
+    //
+    // USE TWO DIFFERENT I2C INTERFACES
+    //
+    // *******************************
+    I2C_Handle      i2c; // INTERFACE FOR OTHER SENSORS
+    I2C_Params      i2cParams;
+    I2C_Handle i2cMPU; // INTERFACE FOR MPU9250 SENSOR
+	I2C_Params i2cMPUParams;
+	
+	float ax, ay, az, gx, gy, gz;
+	double temperature,pres,temp,bright,hum;
+	char str[80];
+    
+    /* Create I2C for usage */
+    I2C_Params_init(&i2cParams);
+    i2cParams.bitRate = I2C_400kHz;
+    
+    I2C_Params_init(&i2cMPUParams);
+    i2cMPUParams.bitRate = I2C_400kHz;
+    i2cMPUParams.custom = (uintptr_t)&i2cMPUCfg;
+    
+    // *******************************
+    //
+    // MPU OPEN I2C
+    //
+    // *******************************
+    i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
+    if (i2cMPU == NULL) {
+        System_abort("Error Initializing I2CMPU\n");
+    }
+
+    // *******************************
+    //
+    // MPU POWER ON
+    //
+    // *******************************
+    PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_ON);
+
+    // WAIT 100MS FOR THE SENSOR TO POWER UP
+	Task_sleep(100000 / Clock_tickPeriod);
+    System_printf("MPU9250: Power ON\n");
+    System_flush();
+
+    // *******************************
+    //
+    // MPU9250 SETUP AND CALIBRATION
+    //
+    // *******************************
+	System_printf("MPU9250: Setup and calibration...\n");
+	System_flush();
+
+	mpu9250_setup(&i2cMPU);
+
+	System_printf("MPU9250: Setup and calibration OK\n");
+	System_flush();
+
+    // *******************************
+    //
+    // MPU CLOSE I2C
+    //
+    // *******************************
+    I2C_close(i2cMPU);
+
+    // *******************************
+    //
+    // OTHER SENSOR OPEN I2C
+    //
+    // *******************************
+    
+    i2c = I2C_open(Board_I2C0, &i2cParams);
+    if (i2c == NULL) {
+        System_abort("Error Initializing I2C\n");
+    }
+    else {
+        System_printf("I2C Initialized!\n");
+    }
+
+    // *******************************
+    //
+    // SETUP OTHER SENSORS
+    //
+    // *******************************
+    
+    // TMP007 SETUP
+    tmp007_setup(&i2c);
+    
+    // OPT3001 SETUP
+    opt3001_setup(&i2c);
+    
+    // BMP280 SETUP
+    bmp280_setup(&i2c);
+    
+    // HDC1000 SETUP
+    hdc1000_setup(&i2c);
+    
+    // *******************************
+    //
+    // OTHER SENSOR CLOSE I2C
+    //
+    // *******************************
+    I2C_close(i2c);
+    
+    /* Display */
+    Display_Params displayParams;
+	displayParams.lineClearMode = DISPLAY_CLEAR_BOTH;
+    Display_Params_init(&displayParams);
+
+    hDisplay = Display_open(Display_Type_LCD, &displayParams);
+    if (hDisplay == NULL) {
+        System_abort("Error initializing Display\n");
+    }
+    
+    /*Paalla Display*/
+    Display_print0(hDisplay, 8,8, "Paalla");
+    Task_sleep(5 * 1000000/Clock_tickPeriod);
+    Display_clear(hDisplay);
+
+     // LOOP FOREVER
+	while (1) {
+
+	    // *******************************
+	    //
+	    // OTHER SENSORS OPEN I2C
+	    //
+	    // *******************************
+	    i2c = I2C_open(Board_I2C, &i2cParams);
+	    if (i2c == NULL) {
+	        System_abort("Error Initializing I2C\n");
+	    }
+	    // *******************************
+	    //
+	    // TMP007 ASK DATA
+	    //
+	    // *******************************
+	    tmp007_get_data(&i2c, &temperature);
+
+    	sprintf(tstr,"%f\n",temperature);
+    	System_printf(str);
+    	System_flush();
+    	
+    	// *******************************
+	    //
+	    // OPT3001 ASK DATA
+	    //
+	    // *******************************
+	    opt3001_get_data(&i2c, &bright);
+
+    	sprintf(bstr,"%f\n",bright);
+    	System_printf(str);
+    	System_flush();
+
+	    // *******************************
+	    //
+	    // BMP280 ASK DATA
+	    //
+	    // *******************************
+	    bmp280_get_data(&i2c, &pres, &temp);
+
+    	sprintf(pstr,"%f %f\n",pres,temp);
+    	System_printf(str);
+    	System_flush();
+    	
+    	// *******************************
+	    //
+	    // HDC1000 ASK DATA
+	    //
+	    // *******************************
+	    hdc1000_get_data(&i2c, &hum);
+
+    	sprintf(hstr,"%f\n",hum);
+    	System_printf(str);
+    	System_flush();
+
+	    // *******************************
+	    //
+	    // OTHER SENSORS CLOSE I2C
+	    //
+	    // *******************************
+	    I2C_close(i2c);
+
+	    // *******************************
+	    //
+	    // MPU OPEN I2C
+	    //
+	    // *******************************
+	    i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
+	    if (i2cMPU == NULL) {
+	        System_abort("Error Initializing I2CMPU\n");
+	    }
+
+	    // *******************************
+	    //
+	    // MPU ASK DATA
+		//
+        //    Accelerometer values: ax,ay,az
+	 	//    Gyroscope values: gx,gy,gz
+		//
+	    // *******************************
+		mpu9250_get_data(&i2cMPU, &ax, &ay, &az, &gx, &gy, &gz);
+
+    	sprintf(mstr,"%f %f %f %f %f %f\n", ax,ay,az,gx,gy,gz);
+    	System_printf(str);
+    	System_flush();
+
+	    // *******************************
+	    //
+	    // MPU CLOSE I2C
+	    //
+	    // *******************************
+	    I2C_close(i2cMPU);
+
+	    // WAIT 100MS
+    	Task_sleep(100000 / Clock_tickPeriod);
+	}
+
+	// MPU9250 POWER OFF 
+	// Because of loop forever, code never goes here
+    PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_OFF);
+    
+    
+    
+    /*Temperature display 
+    Display_clear(hDisplay);
+    
+    //sprintf(dstr,"%x",IEEE80154_MY_ADDR);
+    Display_print0(hDisplay, 9, 1, tstr);
+    Task_sleep(2 * 1000000/Clock_tickPeriod);
+    Display_clear(hDisplay);
+
+    Display_print0(hDisplay, 9, 1, bstr);
+    Task_sleep(2 * 1000000/Clock_tickPeriod);
+    Display_clear(hDisplay);
+
+    Display_print0(hDisplay, 9, 1, pstr);
+    Task_sleep(2 * 1000000/Clock_tickPeriod);
+    Display_clear(hDisplay);
+
+    Display_print0(hDisplay, 9, 1, hstr);
+    Task_sleep(2 * 1000000/Clock_tickPeriod);
+    Display_clear(hDisplay);
+    
+    Display_print0(hDisplay, 9, 1, mstr);
+    Task_sleep(2 * 1000000/Clock_tickPeriod);
+    Display_clear(hDisplay);
+    */
+}
+
+int main(void) {
+    int i, n, valinta;
+
+    // Task variables
+	Task_Handle task;
+	Task_Params taskParams;
+	Task_Handle taskComm;
+	Task_Params taskCommParams;
+	Task_Handle taskValikko;
+	Task_Params taskValikkoParams;
+
+    // Initialize board
+    Board_initGeneral();
+    Board_initI2C();
+
+	/* Buttons */
+	hPowerButton = PIN_open(&sPowerButton, cPowerButton);
+	if(!hPowerButton) {
+		System_abort("Error initializing button shut pins\n");
+	}
+	if (PIN_registerIntCb(hPowerButton, &powerButtonFxn) != 0) {
+		System_abort("Error registering button callback function");
+	}
+	
+	/* Open button pin */
+   hButton0 = PIN_open(&sButton0, cButton0);
+   if(!hButton0) {
+      System_abort("Error initializing button pins\n");
+   }
+	if (PIN_registerIntCb(hButton0, &buttonFxn) != 0) {
+		System_abort("Error registering button callback function");
+	}
+
+    /* Leds */
+    hLed = PIN_open(&sLed, cLed);
+    if(!hLed) {
+        System_abort("Error initializing LED pin\n");
+    }
+    
+    /* OPEN MPU POWER PIN */
+    hMpuPin = PIN_open(&MpuPinState, MpuPinConfig);
+    if (hMpuPin == NULL) {
+    	System_abort("Pin open failed!");
+    }
+
+    /* Main Task */
+    Task_Params_init(&taskParams);
+    taskParams.stackSize = STACKSIZE;
+    taskParams.stack = &taskStack;
+    taskParams.priority=2;
+    task = Task_create((Task_FuncPtr)taskFxn, &taskParams, NULL);
+    if (task == NULL) {
+    	System_abort("Task create failed!");
+    }
+    
+    /* Valikko Task */
+    Task_Params_init(&taskValikkoParams);
+    taskValikkoParams.stackSize = STACKSIZE;
+    taskValikkoParams.stack = &taskValikkoStack;
+    taskValikkoParams.priority=3;
+    taskValikko = Task_create(valikkoFxn, &taskValikkoParams, NULL);
+    if (taskValikko == NULL) {
+    	System_abort("Task create failed!");
+    }
+    
+    /* Communication Task */
+    Init6LoWPAN();
+    Task_Params_init(&taskCommParams);
+    taskCommParams.stackSize = STACKSIZE;
+    taskCommParams.stack = &taskCommStack;
+    taskCommParams.priority=1;
+    taskComm = Task_create(commFxn, &taskCommParams, NULL);
+    if (taskComm == NULL) {
+    	System_abort("Task create failed!");
+    }
+
+    System_printf("Hello world!\n");
+    System_flush();
+    
+    /* Start BIOS */
+    BIOS_start();
+
+    return (0);
+}
