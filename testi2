@@ -1,0 +1,86 @@
+#include <stdio.h>
+#include <time.h>
+#include <math.h
+#include <string.h>
+#include <stdint.h>
+
+
+
+
+int valinta = 0;
+int i = 0;
+int n = 5;
+int valinta = 0;
+
+/*pitää confata cpowerbutton valitsemaan toiminta*/
+
+
+Void displayFxn(UArg arg0, UArg arg1) {
+
+	Display_Params params;
+	Display_Params_init(&params);
+	params.lineClearMode = DISPLAY_CLEAR_BOTH;
+	Display_Handle hDisplay = Display_open(Display_Type_LCD, &params);
+
+if (hDisplay){    
+	Display_print0(hDisplay,8,8, "Luodaan uusi Gotchi");
+	Display_print0(hDisplay,7,8, "Leiki muiden kanssa");
+	Display_print0(hDisplay,6,8, "Tervehdi");
+	Display_print0(hDisplay,5,8, "Nukkumaan");
+	Display_print0(hDisplay,4,8, "Sammuta laite");
+	while(1){
+        if (i == 0){
+			Display_print0(hDisplay,8,8, "Luodaan uusi gotchi");
+            if (hButton0 == true){
+                valinta = 0;
+				else if (cButton0 == true){
+					i++;
+				}
+			}
+		}
+        else if (i == 1){
+            Display_print0(hDisplay, 8,8, "Leiki");
+            if (hButton0 == true){
+                Display_print0(hDisplay,8,8, "Gothi ulkoilee kerrallaan 20s");
+                valinta = 1;
+            }
+            else if (cButton0 == true){
+                i++;
+            }
+        }
+        else if (i == 2){
+            Display_print0(hDisplay,8,8, "Terve muille");
+            if (cButton0 == true){
+                i++;
+                }
+            else if (hButton0 == true){
+                Display_print0(hDisplay,8,8. "Gotchi morottaa kavereita!");
+                valinta = 2;
+            }
+        }
+        else if (i == 3){
+            Display_print0(hDisplay,8,8, "Gotchi nukkumaan");
+            if (cButton0 == true){
+                i++;
+            }
+            else if (hButton0 == true){
+                Display_print0(hDisplay,8,8, "Gotchi menee nukkumaan!");
+                alinta = 3;
+            }
+        }
+        else if (i == 4){
+			Display_print0(hDisplay,8,8, "sammuta laite");
+			Display_print0(hDisplay,8,8, "HYVÄSTI?");
+            if (hButton0 == true){
+                Power_shutdown(NULL,0);
+            }
+        }
+        else if (hPowerButton == true){
+            Power_shutdown(NULL,0);
+        }
+		else if(i>n){
+			i = 0;
+		}
+    }
+}
+}
