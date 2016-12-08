@@ -1,0 +1,10 @@
+uint_t = tulos;
+
+
+
+void 0ButtonFxn(PIN_Handle handle, PIN_Id pinId, PIN_State sButton0){
+    tulos = PIN_getOutputValue(PIN_Id pinId);
+    if (tulos == 1){
+        i++;
+    }
+}
