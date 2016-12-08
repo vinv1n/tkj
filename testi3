@@ -1,0 +1,51 @@
+#include <stdio.h>
+#include <time.h>
+#include <math.h
+#include <string.h>
+#include <stdint.h>
+	switch(i){
+        case '0':
+			Display_print0(hDisplay,8,8, "Luodaan uusi gotchi");
+            if (hButton0){
+                valinta = 0;
+				else if (cButton0){
+					i++;
+				}
+			}
+        case '1'
+            Display_print0(hDisplay, 8,8, "Leiki");
+            if (cButton0){
+                Display_print0(hDisplay,8,8, "Gothi ulkoilee kerrallaan 20s");
+                valinta = 1;
+            }
+            else if (hButton0){
+                i++;
+            }
+        case '2':
+            Display_print0(hDisplay,8,8, "Terve muille");
+            if (hButton0){
+                i++;
+                }
+            else if (cButton0){
+                Display_print0(hDisplay,8,8. "Gotchi morottaa kavereita!");
+                valinta = 2;
+            }
+        case '3':
+            Display_print0(hDisplay,8,8, "Gotchi nukkumaan");
+            if (hButton0){
+                i++;
+            }
+            else if (cButton0){
+                Display_print0(hDisplay,8,8, "Gotchi menee nukkumaan!");
+                valinta = 3;
+            }
+        case '4'
+			Display_print0(hDisplay,8,8, "sammuta laite");
+			Display_print0(hDisplay,8,8, "HYVÄSTI?");
+            if (cButton0 == true){
+                Power_shutdown(NULL,0);
+            }
+        default:
+            i == 0;
+    }
+}
