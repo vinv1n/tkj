@@ -1,0 +1,101 @@
+         /*Valikko*/
+    Display_print0(hDisplay, 1,1, "KALU");
+    Display_print0(hDisplay, 2,1, "kaynnissa");
+    Task_sleep(1 * 1000000/Clock_tickPeriod);
+    Display_clear(hDisplay);
+    
+if (hDisplay){    
+	Display_print0(hDisplay,1,1, "Luodaan uusi");
+	Display_print0(hDisplay,2,1, "Gotchi");
+	Display_print0(hDisplay,3,1, "Leiki muiden");
+	Display_print0(hDisplay,4,1, "kanssa");
+	Display_print0(hDisplay,5,1, "Tervehdi");
+	Display_print0(hDisplay,6,1, "Nukkumaan");
+	Display_print0(hDisplay,7,1, "Sammuta laite");
+	Task_sleep(2 * 1000000/Clock_tickPeriod);
+    Display_clear(hDisplay);
+	for(n; n<10; n++){
+        if (i == 0){
+			Display_print0(hDisplay,1,1, "Luodaan gotchi?");
+            if (hPowerButton == true){
+                Task_sleep(1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                Void commFxn(UArg arg0, UArg arg1);
+                break;
+            }
+			else if (hButton0 == true){
+			    Task_sleep(1000000/Clock_tickPeriod);
+			    Display_clear(hDisplay);
+				i++;
+				}
+			}
+        else if (i == 1){
+            Display_print0(hDisplay, 1,1, "Leiki");
+            if (hPowerButton == true){
+                Display_clear(hDisplay);
+                Display_print0(hDisplay,1,1, "Gothi ulkoilee 20s");
+                Task_sleep(2 * 1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                Display_clear(hDisplay);
+                Void commFxn(UArg arg0, UArg arg1);
+                break;
+            }
+            else if (hButton0 == true){
+                Display_clear(hDisplay);
+                Display_clear(hDisplay);
+                i++;
+            }
+        }
+        else if (i == 2){
+            Display_print0(hDisplay,1,1, "Terve muille");
+            if (hButton0 == true){
+                i++;
+                Display_clear(hDisplay);
+                }
+            else if (hPowerButton == true){
+                Display_print0(hDisplay,1,1, "Gotchi morottaa!");
+                Task_sleep(2 * 1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                Void commFxn(UArg arg0, UArg arg1);
+                break;
+            }
+        }
+        else if (i == 3){
+            Display_print0(hDisplay,1,1, "Gotchi nukkumaan?");
+            if (hButton0 == true){
+                Task_sleep(1000000/Clock_tickPeriod);
+                i++;
+                Display_clear(hDisplay);
+            }
+            else if (hPowerButton == true){
+                Display_print0(hDisplay,1,1, "Gotchi nukkuu!");
+                Task_sleep(2 * 1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                Void commFxn(UArg arg0, UArg arg1);
+                break;
+            }
+        }
+        else if (i == 4){
+			Display_print0(hDisplay,1,1, "Sammuta laite");
+            if (hPowerButton == true){
+                Task_sleep(1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                Display_close(hDisplay);
+                Task_sleep(100000 / Clock_tickPeriod);
+	            PIN_close(hPowerButton);
+                PINCC26XX_setWakeup(cPowerWake);
+	            Power_shutdown(NULL,0);
+            }
+            else if(hButton0 == true){
+                Task_sleep(1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                i++;
+            }
+        }
+		else if(i>4){
+		    Task_sleep(1000000/Clock_tickPeriod);
+		    Display_clear(hDisplay);
+			i = 0;
+		}
+    }
+}
