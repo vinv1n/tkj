@@ -1,0 +1,279 @@
+if (hDisplay){    
+    Display_print0(hDisplay,1,1, "Lataa gotchi?");
+    Display_print0(hDisplay,2,1, "Leiki?");
+    Display_print0(hDisplay,3,1, "Terve muille?");
+    Display_print0(hDisplay,4,1, "Nukkumaan?");
+    Display_print0(hDisplay,5,1, "Sammuta laite?");
+    Task_sleep(2 * 1000000/Clock_tickPeriod);
+    Display_clear(hDisplay);
+    while(1){
+        u=0;
+        l=0;
+        t=0;
+        n=0;
+        if (i == 0){
+            Display_print0(hDisplay,1,1, "Lataa gotchi?");
+            if (hPowerButton == true){
+                Display_print0(hDisplay,1,1,"Ladataan gothi");
+                Task_sleep(1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                u = 1;
+                break;
+            }
+            else if (hButton0 == true){
+                Task_sleep(1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                i++;
+			}
+        }
+        else if (i == 1){
+            Display_print0(hDisplay, 1,1, "Leiki?");
+            if (hPowerButton == true){
+                Display_clear(hDisplay);
+                Display_print0(hDisplay,1,1, "Gothi ulkoilee 20s");
+                Task_sleep(2 * 1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                l = 1
+                break;
+            }
+            else if (hButton0 == true){
+                i++;
+            }
+        }
+        else if (i == 2){
+            Display_print0(hDisplay,1,1, "Terve muille?");
+            if (hPowerButton == true){
+                Display_print0(hDisplay,1,1, "Gotchi morottaa!");
+                Task_sleep(2 * 1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                t = 1;
+                break;
+            }
+            else if (hButton0 == true){
+                i++;
+            }
+        }
+        else if (i == 3){
+            Display_print0(hDisplay,1,1, "Nukkumaan?");
+            if (hPowerButton == true){
+                Display_print0(hDisplay,1,1, "Gotchi nukkuu");
+                Task_sleep(2 * 1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                n = 1;
+                break;
+            }
+            else if (hButton0 == true){
+                i++;
+            }
+        }
+        else if (i == 4){
+            Display_print0(hDisplay,1,1, "Sammuta laite");
+            if (hPowerButton == true){
+                Task_sleep(1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                Display_close(hDisplay);
+                Task_sleep(100000 / Clock_tickPeriod);
+                PIN_close(hPowerButton);
+                PINCC26XX_setWakeup(cPowerWake);
+                Power_shutdown(NULL,0);
+            }
+            else if(hButton0 == true){
+                Task_sleep(1000000/Clock_tickPeriod);
+                Display_clear(hDisplay);
+                i++;
+            }
+        }
+        while(1){
+            if (u == 1){
+                if (nimi == true){
+                    Display_print0(hDisplay, 1,1, "Ladattu jo!");
+                    Task_sleep(1000000/Clock_tickPeriod);
+                    Display_clear(hDisplay);
+                    break;
+            }
+                else if (nimi == NULL){
+                    Display_print0(hDisplay,1,1, "Lataus vai luonti?");
+                    Task_sleep(5 * 1000000/Clock_tickPeriod);
+                    //Luodaan uusi gotchi pitää parantaa jossain vaihessa
+                    if (GetTXFlag() == false){
+                        Send6LoWPAN(senderAddr, payload[80], 80);
+                        StartReceive6LoWPAN();
+                    }
+                    else if (GetRXFlag() == true){
+                        if (Receive6LoWPAN(&senderAddr, payload, 80) != -1) {
+                            Display_print0(hDisplay,1,1,payload);
+                            Task_sleep(2* 1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            break;
+                        }
+                    }
+                }		    
+                if (hPowerButton == true){
+                    //Haetaan vanha gotchi
+                    if (GetTXFlag() == false){
+                        Send6LoWPAN(0xBEEF, nimi, 25);
+                        StartReceive6LoWPAN();
+                    }
+                    else if (GetRXFlag() == true){
+                        if (Receive6LoWPAN(&senderAddr, payload, 80) != -1) {
+                            Display_print0(hDisplay,1,1,payload);
+                            break;
+                        }
+                    }
+                }
+            }
+            else if (l == 1){			
+                while(1){
+                    if (GetTXFlag() == false){
+                        Send6LoWPAN(0xFFFF, nimi,16);
+                        StartReceive6LoWPAN();
+                    }
+                    else if (GetRXFlag() == true){
+                        if(Receive6LoWPAN(&senderAddr, payload, 80 != -1)){
+                            Display_print0(hDisplay,1,1,"Leikitaan");
+                            // OTHER SENSORS OPEN I2C
+                            i2c = I2C_open(Board_I2C0, &i2cParams);
+                            if (i2c == NULL) {
+                                System_abort("Error Initializing I2C\n");
+                            }
+                            else {
+                                System_printf("I2C Initialized!\n");
+                            }
+                            // SETUP OTHER SENSORS
+                            // TMP007 SETUP
+                            tmp007_setup(&i2c);
+                            // OPT3001 SETUP
+                            opt3001_setup(&i2c);
+                            // BMP280 SETUP
+                            bmp280_setup(&i2c);
+                            // HDC1000 SETUP
+                            hdc1000_setup(&i2c);
+                            // TMP007 ASK AND SHOW DATA
+                            tmp007_get_data(&i2c, &temperature);
+                            sprintf(tstr,"%f\n",temperature);
+                            System_printf(str);
+                            System_flush();
+                            Display_print0(hDisplay,1,1, &temperature");
+                            Task_sleep(2 * 1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            // OPT3001 ASK AND SHOW DATA
+                            opt3001_get_data(&i2c, &bright);
+                            sprintf(bstr,"%f\n",bright);
+                            System_printf(str);
+                            System_flush();
+                            Display_print0(hDisplay,1,1, &bright);
+                            Task_sleep(2 * 1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            // BMP280 ASK AND SHOW DATA
+                            bmp280_get_data(&i2c, &pres, &temp);
+                            sprintf(pstr,"%f %f\n",pres,temp);
+                            System_printf(str);
+                            System_flush();
+                            Display_print0(hDisplay,1,1, &pres);
+                            Task_sleep(2 * 1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            // HDC1000 ASK AND SHOW DATA
+                            hdc1000_get_data(&i2c, &hum);
+                            sprintf(hstr,"%f\n",hum);
+                            System_printf(str);
+                            System_flush();
+                            Display_print0(hDisplay,1,1, &hum);
+                            Task_sleep(2 * 1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            // OTHER SENSORS CLOSE I2C
+                            I2C_close(i2c);
+                            // MPU OPEN I2C
+                            i2cMPU = I2C_open(Board_I2C, &i2cMPUParams);
+                            if (i2cMPU == NULL) {
+                                System_abort("Error Initializing I2CMPU\n");
+                            }
+                            // MPU POWER ON
+                            PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_ON);
+                            // WAIT 100MS FOR THE SENSOR TO POWER UP
+                            Task_sleep(100000 / Clock_tickPeriod);
+                            System_printf("MPU9250: Power ON\n");
+                            System_flush();
+                            // MPU9250 SETUP AND CALIBRATION
+                            System_printf("MPU9250: Setup and calibration...\n");
+                            System_flush();
+                            mpu9250_setup(&i2cMPU);
+                            System_printf("MPU9250: Setup and calibration OK\n");
+                            System_flush();
+                            // MPU ASK AND SHOW DATA
+                            // Accelerometer values: ax,ay,az
+                            // Gyroscope values: gx,gy,gz
+                            mpu9250_get_data(&i2cMPU, &ax, &ay, &az, &gx, &gy, &gz);
+                            sprintf(mstr,"%f %f %f %f %f %f\n", ax,ay,az,gx,gy,gz);
+                            System_printf(str);
+                            System_flush();
+                            Display_print0(hDisplay,1,1, &ax);
+                            Task_sleep(2 * 1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            Display_print0(hDisplay,1,1, &ay);
+                            Task_sleep(2 * 1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            Display_print0(hDisplay,1,1, &az);
+                            Task_sleep(2 * 1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            Display_print0(hDisplay,1,1, &gx);
+                            Task_sleep(2 * 1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            Display_print0(hDisplay,1,1, &gy);
+                            Task_sleep(2 * 1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            Display_print0(hDisplay,1,1, &gz);
+                            Task_sleep(2 * 1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            // MPU CLOSE I2C
+                            I2C_close(i2cMPU);
+                            // WAIT 100MS
+                            Task_sleep(100000 / Clock_tickPeriod);
+                            // MPU9250 POWER OFF 
+                            PIN_setOutputValue(hMpuPin,Board_MPU_POWER, Board_MPU_POWER_OFF);
+                            break;
+                        }
+                    }
+                }
+            }
+            else if(t == 1){
+                if (GetTXFlag() == false){
+                    Send6LoWPAN(0xFFFF, nimi,16);
+                    StartReceive6LoWPAN();
+                }
+                else if (GetRXFlag() == true){
+                    if(Receive6LoWPAN(&senderAddr, payload, 80 != -1)){
+                        Display_print0(hDisplay,1,1,"Nahtiin kaveri:");
+                        Display_print0(hDisplay,2,1,payload);
+                        Task_sleep(5000000/Clock_tickPeriod);
+                        Display_clear(hDisplay);
+                        break;
+                    }
+                }
+            }
+            else if(n == 1){
+                else if (nimi == NULL){
+                    Display_print0(hDisplay,1,1, "Ei ole Gotchia!");
+                    Task_sleep(1000000/Clock_tickPeriod);
+                    Display_clear(hDisplay);
+                    break;
+                }
+                else {
+                    if (GetTXFlag() == false){
+                        //payload = gothi[80];
+                        Send6LoWPAN(0xBEEF, payload, 80);
+                        StartReceive6LoWPAN();
+                    }
+                    else if (GetRXFlag() == true){
+                        if (Receive6LoWPAN(&senderAddr, payload, 80) != -1){
+                            Display_print0(hDisplay,1,1,"Gothi meni nukkumaan!");
+                            Task_sleep(1000000/Clock_tickPeriod);
+                            Display_clear(hDisplay);
+                            break;
+                        }
+                    }
+                }
+            }    
+
+        }
+    }
+}
