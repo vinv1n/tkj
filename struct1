@@ -1,0 +1,36 @@
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+struct elukka {
+    char nimi[16];
+    uint8_t kuva[8];
+    uint32_t liikunta;
+    uint32_t aurinko;
+    uint32_t ulkoilu;
+    uint32_t sosiaalisuus;
+} aasi;
+
+char *strtok(char *str, const char *delim);
+
+char payload[80];
+const char s[2] = ",";
+char *token;
+
+struct elukka aasi1;
+
+for (j=0; j<14; j++){
+	token = strtok(payload,s);
+    if (j<8){
+        scanf("%x",token);
+        num = atoi(token);
+        memcpy(kuva, num , 8);
+    }
+    else{
+        aasi1.liikunta = atoi(payload[8]);
+        aasi1.aurinko = atoi(payload[9]);
+        aasi1.ulkoilu = atoi(payload[10]);
+        aasi1.sosiaalisuus = atoi(payload[11]);
+        memcpy(nimi, token, 16);
+    }
+}
