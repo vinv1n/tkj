@@ -1,0 +1,30 @@
+struct elukka {
+    char nimi[16];
+    uint8_t kuva[];
+    uint32_t liikunta;
+    uint32_t aurinko;
+    uint32_t ulkoilu;
+    uint32_t sosiaalisuus;
+} aasi;
+
+char *strtok(char *str, const char *delim);
+
+char payload[80];
+const char s[2] = ",";
+char *token;
+
+struct elukka aasi1;
+
+for (j; j<80; j++){
+	token = strtok(payload,s);
+    if (j<8){
+        memcpy(kuva, token, 8);
+    }
+    else{
+        aasi1.liikunta = payload[8];
+        aasi1.aurinko = payload[9];
+        aasi1.ulkoilu = payload[10];
+        aasi1.sosiaalisuus = payload[11];
+        memcpy(nimi, token, 16);
+    }
+}
